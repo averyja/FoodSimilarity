@@ -99,7 +99,6 @@ bar_plotting <- function(dframe,factor,index){
     stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge", width = 0.2) +
     geom_hline(yintercept=0) +
     geom_text(y = ypos, aes(label = label), size = text_size, data = df, vjust = "inward") + 
-    theme(axis.text.x = element_text(size = 8,angle=45, hjust=1, face="bold")) +
     annotate("text", label = "", size = text_size, x = c(1:nval), y = c(rep((ypos+delta_y),nval))) +
     labs(fill = variable)
   
@@ -163,15 +162,16 @@ clusters = c("veggies","fats","fruits","starches","sweets") #assign names to foo
 ## ========================================================================================== ##
 lo_road = c("Dorsal_ACC","Left_Amyg","Left_dMI","Left_vAI","Left_OFC","Left_VS","Right_MI","Right_OFC","Right_Amyg")
 hi_road = c("Left_IFG","Left_MFG","Pre_SMA","Right_IFG","Right_IPS","Right_MFG","Right_PCG")
-visual = "V1"
+visual = c("V1","Left_mOG","Right_mOG","Right_FG","Left_iTG","Right_PHG")
 roi_order = c(hi_road,lo_road)
+all_rois = c(hi_road,lo_road,visual)
 ## ========================================================================================== ##
 ## Flattened upper triangle vectors used for RSA Analyses
 PC1_vec = ut(as.matrix(dist(food_vars[,1])))
 PC2_vec = ut(as.matrix(dist(food_vars[,2])))
 
-cluster_vec = ut(read.csv("cluster_rdm.csv",row.names = 1))
-category_vec = ut(read.csv("category_rdm.csv",row.names = 1))
+cluster_vec = ut(read.csv("DATA/cluster_rdm.csv",row.names = 1))
+category_vec = ut(read.csv("DATA/category_rdm.csv",row.names = 1))
 
 subj_data = read.csv(sprintf("%s/RSA_subject_data_%s_zscores.csv",out_dir,task),row.names = 1,check.names = F)
 subjects = as.character(levels(subj_data$sublabel)); rois = as.character(levels(subj_data$roi))

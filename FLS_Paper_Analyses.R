@@ -1,4 +1,4 @@
-## Analyses and Figure prep for Avery et al., 2013 Food Similarity Paper
+## Analyses and Figure prep for Avery et al., 2023 Food Similarity Paper
 setwd("~/Documents/GitHub/FoodSimilarity/")
 source("source_me.R")
 
@@ -258,12 +258,12 @@ t.test(PC1 ~ network, data = subj_data)
 ## ========================================================================================== ##
 ## Figure 5: PSC Analyses
 
-# Write out to csv files
-write.csv(ples_ratings, file = "PSC_ples_ratings_averages.csv", quote = TRUE, eol = "\n", na = "NA", row.names = TRUE)
-write.csv(self_ratings, file = "PSC_selfctrl_ratings_averages.csv", quote = TRUE, eol = "\n", na = "NA", row.names = TRUE)
+# read from csv files
+ples_ratings = read.csv("DATA/PSC_ples_ratings_averages.csv", row.names = 1)
+self_ratings = read.csv("DATA/PSC_selfctrl_ratings_averages.csv", row.names = 1)
 
 # Now look at the correlations b/t ples and selfctrl ratings...
-psc_corrs = sapply(levels(cfr_data$subj), function(x) cor(ples_ratings[,x],self_ratings[,x],use = "complete"))
+psc_corrs = sapply(levels(psc_data$subj), function(x) cor(ples_ratings[,x],self_ratings[,x],use = "complete"))
 mean(abs(psc_corrs))
 # [1] 0.9140807 # So the average correlation is pretty high
 
@@ -274,38 +274,142 @@ cor(ples_means,self_means)
 # [1]  0.9793447 # And the correlation of the averages is also pretty high
 ## ========================================================================================== ##
 ## Now make a scatterplot with the mean ratings
+setwd("~/Documents/OneDrive - National Institutes of Health/Studies/FoodLocSim/DATA")
+library(ggimage)
 df = data.frame(ples_means,self_means)
 names(df) = c("ples","selfctrl")
+
+df$food_file = sapply(as.character(row.names(df)), function(x) grep(sprintf("x_%s",x),list.files("psc_images"), value = T))
+df$image = sprintf("psc_images/%s",df$food_file)
+
+options(ggrepel.max.overlaps = Inf) #set max overlaps for ggrepel, for cluster plot
 
 ratings_model = lm(selfctrl ~ ples, data = df)
 rsqr = signif(summary(ratings_model)$adj.r.squared, 2)
 
-ggplot(ratings_model$model, aes(x = ples, y = selfctrl)) + 
-  theme(panel.background=element_rect(fill="white"))+ #edit panel bg color
+ggplot(df, aes(x = ples, y = selfctrl)) + 
   theme(panel.border = element_rect(colour = "black", fill=NA, size=1)) +
-  annotate("text", label = bquote(r^2~"="~.(rsqr)), size = 8, x = 3, y = 4.5) +
-  geom_point(shape=21,color="black",fill="blue",size=4)+
-  geom_smooth(stat = "smooth",method = "lm", col = "red") + # insert model trend-line with 
-  xlab("Pleasantness Ratings") + theme(axis.title.x = element_text(hjust = 0.5, color="black", size=14, face="bold")) +
-  ylab("Self-Control Ratings") + theme(axis.title.y = element_text(hjust = 0.5, color="black", size=14, face="bold"))+
+  annotate("text", label = bquote(r^2~"="~.(rsqr)), size = 12, x = 3, y = 4.5) +
+  geom_image(aes(image=image), size=.08) +
+  geom_smooth(method="lm",formula=y~x, col = "blue") +
+  theme(axis.text.x = element_text(size = 12,  face="bold")) +
+  theme(axis.text.y = element_text(size = 12,  face="bold")) +
+  xlab("Pleasantness Ratings - Average") + theme(axis.title.x = element_text(hjust = 0.5, color="black", size=14, face="bold")) +
+  ylab("Self-Control Ratings - Average") + theme(axis.title.y = element_text(hjust = 0.5, color="black", size=14, face="bold"))+
   theme(plot.title = element_text(size=22, face="bold", hjust = 0.5)) + #edit plot title size, font, and center
   labs(title = "Pleasantness vs. Self-Control Ratings")
-ggsave(sprintf("PSC_ples_vs_selfctrl_scatterplot.png",out_dir), width = 8, height = 6,dpi=300)
+ggsave(sprintf("FLS_analyses_2023-04-04/PSC_ples_vs_selfctrl_scatterplot_with_images.png",out_dir), width = 8, height = 6,dpi=300)
+
 
 ## ========================================================================================== ##
+psc_data = read.csv("3dROIstats.ples.roi_data.04-27-2023.csv")
+# psc_data = read.csv("~/Documents/GitHub/FoodSimilarity/DATA/3dROIstats.psc.roi_data.04-21-2023.csv")
+names(psc_data) = c("subj","ROI","ples_UM","ples_AM")
 
-psc_data = read.csv("3dROIstats.psc.AM2.new_roi_data.csv")
+psc_data = psc_data[!psc_data$ROI %in% visual,]
+psc_data$ROI = factor(psc_data$ROI, levels = c(hi_road,lo_road))
 
-psc_data = psc_data[psc_data$ROI %in% roi_order,]
 psc_data$network = NA
 psc_data[psc_data$ROI %in% hi_road,"network"] = "Prefrontal"
 psc_data[psc_data$ROI %in% lo_road,"network"] = "Limbic"
 psc_data$network = factor(psc_data$network, levels = c("Prefrontal","Limbic"))
 
-grouping_data=melt(psc_data)
+# psc_um_data = melt(psc_data[,c(1,2,7,3,4)])
+# psc_am_data = melt(psc_data[,c(1,2,7,5,6)])
+psc_um_data = melt(psc_data[,c(1,2,5,3)])
+psc_am_data = melt(psc_data[,c(1,2,5,4)])
+
+psc_am_data$network = factor(psc_am_data$network, levels = c("Prefrontal","Limbic"))
+
+## =================
+## Plot Unmodulated data
+
+plotting_data = bar_plotting(psc_um_data,c('network'),'value')
+myplot = plotting_data$myplot
+D = plotting_data$df
+D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variable))))
+
+## =================
+## =================
+## Plot Amplitude Modulated data
+plotting_data = bar_plotting(psc_am_data,c('network'),'value')
+myplot = plotting_data$myplot
+D = plotting_data$df
+D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variable))))
+
+plot(myplot)
+text_size = 8
+bar_plot = myplot + 
+  annotate("text", label = "", size = text_size, x = c(1:2), y = c(rep((0.04),2))) +
+  geom_signif(comparisons=list(c("Prefrontal","Limbic")), test = "t.test",
+              test.args=list(alternative = "two.sided", var.equal = TRUE, paired=FALSE),
+              map_signif_level=TRUE,
+              y_position = c(0.005), tip_length = 0, vjust=-0.3, textsize=8) +
+  theme(axis.title.y = element_blank()) + 
+  scale_fill_manual(values=c(r_colors[2],r_colors[1],"green")) +
+  theme(axis.text.y = element_text(hjust = 0.5, color="black", size=10, face="bold"))+
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(size = 12,  face="bold")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1), panel.spacing.x = unit(0,"line")) +
+  theme(plot.title = element_text(hjust = 0.5, color="black", size=20, face="bold.italic")) +
+  labs(fill = "Model") + theme(legend.position = "none")
+
+plot(bar_plot)
+ggsave(sprintf("DATA/FLS_ples_AM2_betas_by_network.png"), width = 4, height = 3,dpi=300)
+
+
+bar_plot = myplot + 
+  annotate("text", label = "", size = 3, x = c(1:2), y = c(rep((0.03),2))) +
+  geom_signif(comparisons=list(c("Prefrontal","Limbic")), test = "t.test",
+              test.args=list(alternative = "greater", var.equal = TRUE, paired=FALSE),
+              map_signif_level=TRUE,
+              y_position = c(0.025), tip_length = 0, vjust=-0.3, textsize=3) +
+  theme(axis.title.y = element_blank()) +
+  theme(strip.text = element_text(hjust = 0.5, color="black", size=24, face="bold"))+
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1), panel.spacing.x = unit(0,"line")) +
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.y = element_text(hjust = 0.5, color="black", size=10, face="bold"))+
+  scale_fill_manual(values=c(r_colors[2],r_colors[1],"green")) +
+  theme(plot.title = element_text(hjust = 0.5, color="black", size=20, face="bold.italic")) +
+  theme(legend.position = "none")
+
+plot(bar_plot)
+ggsave(sprintf("%s/RSA_network_comparison_2PCS.png",out_dir), width = 4, height = 3,dpi=300)
+
+## =================
+## Plot Amplitude Modulated data by ROI
+plotting_data = bar_plotting(psc_am_data,c('ROI','variable'),'value')
+myplot = plotting_data$myplot
+D = plotting_data$df
+D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variable))))
+
+plot(myplot)
+text_size = 8
+bar_plot = myplot + 
+  annotate("text", label = "", size = text_size, x = c(1:2), y = c(rep((0.2),2))) +
+  geom_signif(comparisons=list(c("ples_AM","self_AM")), test = "t.test",
+              test.args=list(alternative = "two.sided", var.equal = TRUE, paired=TRUE),
+              map_signif_level=TRUE,
+              y_position = c(0.10), tip_length = 0, vjust=-0.3, textsize=5) +
+  theme(axis.title.y = element_blank()) + 
+  scale_fill_manual(values=c("red","blue","green")) +
+  theme(strip.text = element_text(hjust = 0.5, color="black", size=24, face="bold"))+
+  theme(axis.text.y = element_text(hjust = 0.5, color="black", size=10, face="bold"))+
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(size = 12,  face="bold")) +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=1), panel.spacing.x = unit(0,"line")) +
+  theme(plot.title = element_text(hjust = 0.5, color="black", size=20, face="bold.italic")) +
+  labs(fill = "Model") + theme(legend.position = "none")
+
+plot(bar_plot)
+ggsave(sprintf("DATA/PSC_ples_vs_selfctrl_rating_modulated_by_roi.png"), width = 6, height = 4.5,dpi=300)
+
+## =================
+# Some t-tests
+
 D = summary_stats(grouping_data,c('network','variable'),"value")
 
-t.test(psc_data[psc_data$network=="Prefrontal","ples"],psc_data[psc_data$network=="Prefrontal","selfctrl"], paired = T)
+t.test(psc_data[psc_data$network=="Prefrontal","ples_AM"],psc_data[psc_data$network=="Prefrontal","self_AM"], paired = T)
 # t = -4.8525, df = 279, p-value = 2.031e-06
 # alternative hypothesis: true difference in means is not equal to 0
 # 95 percent confidence interval:
@@ -314,7 +418,7 @@ t.test(psc_data[psc_data$network=="Prefrontal","ples"],psc_data[psc_data$network
 #   mean of the differences 
 # -0.01397802 
 
-t.test(psc_data[psc_data$network=="Limbic","ples"],psc_data[psc_data$network=="Limbic","selfctrl"], paired = T)
+t.test(psc_data[psc_data$network=="Limbic","ples_AM"],psc_data[psc_data$network=="Limbic","self_AM"], paired = T)
 # t = -0.4817, df = 359, p-value = 0.6303
 # alternative hypothesis: true difference in means is not equal to 0
 # 95 percent confidence interval:
@@ -323,7 +427,16 @@ t.test(psc_data[psc_data$network=="Limbic","ples"],psc_data[psc_data$network=="L
 #   mean of the differences 
 # -0.001597514 
 # 
-summary(aov(value ~ variable*network+Error((subj)) , data = grouping_data))
+t.test(psc_data[psc_data$network=="Visual","ples_AM"],psc_data[psc_data$network=="Visual","self_AM"], paired = T)
+# t = -1.2458, df = 239, p-value = 0.2141
+# alternative hypothesis: true difference in means is not equal to 0
+# 95 percent confidence interval:
+#   -0.009267880  0.002086963
+# sample estimates:
+#   mean of the differences 
+# -0.003590458 
+
+summary(aov(value ~ variable*network+Error((subj)) , data = psc_am_data))
 # Significant effect of network, condition, and condition x network interaction
 # Error: subj
 # Df Sum Sq  Mean Sq F value Pr(>F)
@@ -336,8 +449,43 @@ summary(aov(value ~ variable*network+Error((subj)) , data = grouping_data))
 #   variable:network    1 0.0121 0.01207   5.053 0.0248 *  
 #   Residuals        1237 2.9551 0.00239                   
 # ---
+# 
+# plotting_data = bar_plotting(grouping_data,c('network','variable'),'value')
+# myplot = plotting_data$myplot
+# D = plotting_data$df
+# D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variable))))
+# 
+# plot(myplot)
+# text_size = 8
+# bar_plot = myplot + 
+#   annotate("text", label = "", size = text_size, x = c(1:2), y = c(rep((0.04),2))) +
+#   geom_signif(comparisons=list(c("ples","selfctrl")), test = "t.test",
+#               test.args=list(alternative = "two.sided", var.equal = TRUE, paired=TRUE),
+#               map_signif_level=TRUE,
+#               y_position = c(0.035), tip_length = 0, vjust=-0.3, textsize=5) +
+#   theme(axis.title.y = element_blank()) + 
+#   scale_fill_manual(values=c("red","blue","green")) +
+#   theme(strip.text = element_text(hjust = 0.5, color="black", size=24, face="bold"))+
+#   theme(axis.text.y = element_text(hjust = 0.5, color="black", size=10, face="bold"))+
+#   theme(axis.title.x = element_blank()) + theme(axis.text.x = element_blank()) +
+#   theme(panel.border = element_rect(colour = "black", fill=NA, size=1), panel.spacing.x = unit(0,"line")) +
+#   theme(plot.title = element_text(hjust = 0.5, color="black", size=20, face="bold.italic")) +
+#   labs(fill = "Model") + theme(legend.position = "none")
+# 
+# plot(bar_plot)
+# ggsave(sprintf("PSC_ples_vs_selfctrl_by_network.png"), width = 6, height = 4.5,dpi=300)
+#    
+## =================
 
-plotting_data = bar_plotting(grouping_data,c('network','variable'),'value')
+psc_data$BMI = fls_demo_stats[as.character(psc_data$subj),"BMI"]
+summary(aov(ples_UM ~ BMI*network + Error(subj), data = psc_data))
+summary(aov(self_UM ~ BMI*network + Error(subj), data = psc_data))
+
+## =================
+## aggregate psc_data by network
+network_data = aggregate(. ~ subj+network+variable,data=psc_am_data,mean)
+
+plotting_data = bar_plotting(network_data,c('network','variable'),'value')
 myplot = plotting_data$myplot
 D = plotting_data$df
 D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variable))))
@@ -345,21 +493,22 @@ D$p.adj=p.adjust(D$p.val,method="fdr",n=length((D$p.val)/length(levels(D$variabl
 plot(myplot)
 text_size = 8
 bar_plot = myplot + 
-  annotate("text", label = "", size = text_size, x = c(1:2), y = c(rep((0.04),2))) +
-  geom_signif(comparisons=list(c("ples","selfctrl")), test = "t.test",
+  annotate("text", label = "", size = text_size, x = c(1:2), y = c(rep((0.06),2))) +
+  geom_signif(comparisons=list(c("ples_AM","self_AM")), test = "t.test",
               test.args=list(alternative = "two.sided", var.equal = TRUE, paired=TRUE),
               map_signif_level=TRUE,
-              y_position = c(0.035), tip_length = 0, vjust=-0.3, textsize=5) +
+              y_position = c(0.04), tip_length = 0, vjust=-0.3, textsize=5) +
   theme(axis.title.y = element_blank()) + 
   scale_fill_manual(values=c("red","blue","green")) +
   theme(strip.text = element_text(hjust = 0.5, color="black", size=24, face="bold"))+
   theme(axis.text.y = element_text(hjust = 0.5, color="black", size=10, face="bold"))+
-  theme(axis.title.x = element_blank()) + theme(axis.text.x = element_blank()) +
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(size = 12,  face="bold")) +
   theme(panel.border = element_rect(colour = "black", fill=NA, size=1), panel.spacing.x = unit(0,"line")) +
   theme(plot.title = element_text(hjust = 0.5, color="black", size=20, face="bold.italic")) +
   labs(fill = "Model") + theme(legend.position = "none")
 
 plot(bar_plot)
-ggsave(sprintf("PSC_ples_vs_selfctrl_by_network.png"), width = 6, height = 4.5,dpi=300)
-   
+ggsave(sprintf("DATA/PSC_ples_vs_selfctrl_rating_modulated_by_network.png"), width = 6, height = 4.5,dpi=300)
+
 
