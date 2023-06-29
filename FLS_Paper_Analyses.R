@@ -10,8 +10,8 @@ out_dir = "DATA";
 ## Network Graph of Food ROIs
 ## ========================================================================================== ##
 ## read in food mat data, if starting from scratch
-food_roi_mat = read.csv(sprintf("%s/food_roi_mat.csv",out_dir))
-food_roi_corr_mat = read.csv(sprintf("%s/food_roi_corr_mat.csv",out_dir))
+food_roi_mat = read.csv(sprintf("%s/food_roi_mat.csv",out_dir), row.names = 1)
+food_roi_corr_mat = read.csv(sprintf("%s/food_roi_corr_mat.csv",out_dir), row.names = 1)
 
 ## ========================================================================================== ##
 ## Test for outliers in ROI
@@ -42,7 +42,25 @@ food_roi_corr_mat = cor(food_roi_mat[,1:16])
 png(sprintf("%s/Food_ROI_heatmap.png",out_dir),width=6,height=6,units="in",res=300)
   heatmap(as.matrix(food_roi_corr_mat),labCol = NA,cexRow=1)
 dev.off()
+## ========================================================================================== ##
+## Test similarity between network ROIs
+df = food_roi_corr_mat; diag(df) = NA; df[lower.tri(df)] = NA
+df = melt(as.matrix(df), na.rm = T, value.name = "weight" )
 
+df$type = "between"
+df[df$Var1 %in% hi_road&df$Var2 %in% hi_road,"type"] = "within"
+df[df$Var1 %in% lo_road&df$Var2 %in% lo_road,"type"] = "within"
+df$type = as.factor(df$type)
+
+t.test(weight ~ type, data = df)
+# data:  weight by type
+# t = -10.207, df = 121.12, p-value < 2.2e-16
+# alternative hypothesis: true difference in means is not equal to 0
+# 95 percent confidence interval:
+#   -0.1758694 -0.1187291
+# sample estimates:
+#   mean in group between  mean in group within 
+# 0.3647266             0.5120259 
 ## ========================================================================================== ##
 # Figure 2D: Make network graph
 ## ========================================================================================== ##
