@@ -19,7 +19,6 @@ library(NbClust)
 
 setwd("~/Documents/GitHub/FoodSimilarity/")
 task = "food_loc"; 
-out_dir = "DATA";
 
 ## ========================================================================================== ##
 ## Convenience Functions =====
@@ -38,7 +37,6 @@ ut <- function(x){x[upper.tri(x)]}
 lt <- function(x){x[lower.tri(x)]}
 ## ========================================================================================== ##
 graph_plot = function(graph,food_color){
-  #  vertex_colors = sapply(1:length(V(graph)), function(x) color_community[V(graph)$comms[x]])
   vertex_colors = color_community[food_color]
   edge_colors = sapply(1:length(E(graph)), function(x) color_community[V(graph)$comms[tail_of(graph,x)]])
   if(length(V(graph)$label)==0){V(graph)$label=V(graph)$food}
@@ -62,7 +60,6 @@ graph_plot = function(graph,food_color){
               edge.width=(E(graph)$weight),
               edge.curved=0.45,
               layout= layout_nicely)
-  #return(plotted_graph)
 }
 ## ========================================================================================== ##
 # Aggregate data to get summary stats table
@@ -137,7 +134,8 @@ corr.dist <- function(your_data,your_labels=colnames(your_data)){
   row.names(X) = your_labels; colnames(X) = your_labels
   return(X)
 }
-## ========================================================================================== #### simplified function for euclidean distance. Makes function form similar to cor or cos.dist 
+## ========================================================================================== ###
+## simplified function for euclidean distance. Makes the function structure similar to cor or cos.dist 
 ## input and output
 euc.dist = function(your_data,your_labels=colnames(your_data)){
   your_data = your_data[,your_labels]
@@ -152,28 +150,28 @@ euc.dist = function(your_data,your_labels=colnames(your_data)){
 r_colors = c(brewer.pal(9,"Reds")[6],"gold",brewer.pal(9,"Blues")[5],brewer.pal(9,"Oranges")[5],brewer.pal(9,"Purples")[5],brewer.pal(9,"Greens")[6])
 r_adj_colors = c(brewer.pal(9,"Reds")[8],"goldenrod4",brewer.pal(9,"Blues")[8],brewer.pal(9,"Oranges")[7],brewer.pal(9,"Purples")[8],brewer.pal(9,"Greens")[8])
 ## ========================================================================================== ##
-food_frame = read.csv("DATA/FLS_foods.csv", row.names = 1)
-food_vars = read.csv("DATA/food_pics_data.csv", row.names = 1)
-pval_mat = read.csv("DATA/food_similarity_matrix.csv", row.names = 1)
+food_frame = read.csv("FLS_DATA/FLS_foods.csv", row.names = 1)
+food_vars = read.csv("FoodTriplet_DATA/food_pics_data.csv", row.names = 1)
+pval_mat = read.csv("FoodTriplet_DATA/food_similarity_matrix.csv", row.names = 1)
 foods = row.names(food_vars)
 categories = c("HFLS","HFHS","LFLS","LFHS")
 clusters = c("veggies","fats","fruits","starches","sweets") #assign names to food clusters 
 ## ========================================================================================== ##
 ## ========================================================================================== ##
-lo_road = c("Dorsal_ACC","Left_Amyg","Left_dMI","Left_vAI","Left_OFC","Left_VS","Right_MI","Right_OFC","Right_Amyg")
-hi_road = c("Left_IFG","Left_MFG","Pre_SMA","Right_IFG","Right_IPS","Right_MFG","Right_PCG")
+limbic = c("Dorsal_ACC","Left_Amyg","Left_dMI","Left_vAI","Left_OFC","Left_VS","Right_MI","Right_OFC","Right_Amyg")
+prefrontal = c("Left_IFG","Left_MFG","Pre_SMA","Right_IFG","Right_IPS","Right_MFG","Right_PCG")
+roi_order = c(prefrontal,limbic)
 visual = c("V1","Left_mOG","Right_mOG","Right_FG","Left_iTG","Right_PHG")
-roi_order = c(hi_road,lo_road)
-all_rois = c(hi_road,lo_road,visual)
+
 ## ========================================================================================== ##
 ## Flattened upper triangle vectors used for RSA Analyses
 PC1_vec = ut(as.matrix(dist(food_vars[,1])))
 PC2_vec = ut(as.matrix(dist(food_vars[,2])))
 
-cluster_vec = ut(read.csv("DATA/cluster_rdm.csv",row.names = 1))
-category_vec = ut(read.csv("DATA/category_rdm.csv",row.names = 1))
+cluster_vec = ut(read.csv("FLS_DATA/cluster_rdm.csv",row.names = 1))
+category_vec = ut(read.csv("FLS_DATA/category_rdm.csv",row.names = 1))
 
-subj_data = read.csv(sprintf("%s/RSA_subject_data_%s_zscores.csv",out_dir,task),row.names = 1,check.names = F)
+subj_data = read.csv("FLS_DATA/RSA_subject_data_food_loc_zscores.csv",row.names = 1,check.names = F)
 subjects = as.character(levels(subj_data$sublabel)); rois = as.character(levels(subj_data$roi))
 ## ========================================================================================== ##
 
